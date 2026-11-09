@@ -1,0 +1,11 @@
+name: ferrelupe-frontend
+
+services:
+  panel:
+    build: .
+    ports:
+      - "3000:8080"
+    environment:
+      API_URL: ${API_URL:-http://host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

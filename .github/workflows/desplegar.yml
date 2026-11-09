@@ -1,0 +1,47 @@
+name: Desplegar en Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDSDK_BILLING_QUOTA_PROJECT: ${{ secrets.GCP_PROYECTO }}
+    steps:
+      - name: Revisar que estén los secretos
+        env:
+          GCP_CREDENCIALES: ${{ secrets.GCP_CREDENCIALES }}
+          GCP_PROYECTO: ${{ secrets.GCP_PROYECTO }}
+          API_URL: ${{ secrets.API_URL }}
+        run: |
+          faltan=0
+          for nombre in GCP_CREDENCIALES GCP_PROYECTO API_URL; do
+            if [ -z "${!nombre}" ]; then
+              echo "::error::Falta el secreto $nombre. Créalo en Settings > Secrets and variables > Actions."
+              faltan=1
+            fi
+          done
+          exit $faltan
+
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENCIALES }}
+          project_id: ${{ secrets.GCP_PROYECTO }}
+
+      - name: Desplegar
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ferrelupe-frontend
+          project_id: ${{ secrets.GCP_PROYECTO }}
+          region: southamerica-west1
+          source: .
+          flags: --allow-unauthenticated --min-instances=0
+          env_vars: |
+            API_URL=${{ secrets.API_URL }}
